@@ -52,6 +52,7 @@ int main(void)
 	ASSERT_WITH_MESSAGE(retListen != SOCKET_ERROR, L"listenSocket listen() Error");
 
 	/*********************************** loop start ***********************************/
+	wprintf(L"Server Start\n");
 
 	FD_SET readSet;
 	FD_SET writeSet;

@@ -4,8 +4,9 @@
 #include "RingBuffer.h"
 
 #define MAX_SESSION_COUNT FD_SETSIZE
-
 #define EXCEPT_NOTHING -1
+
+#define USE_SESSION_CONSOLE_LOG
 
 using namespace mds;
 
@@ -18,6 +19,10 @@ Session* CreateSession(SOCKET sock, SOCKADDR_IN address)
 	g_id = (g_id + 1) % INT_MAX;
 
 	g_sessionList.push_back(newSession);
+
+#ifdef USE_SESSION_CONSOLE_LOG
+	wprintf(L"session created %s:%d, session count = %zd\n", newSession->IpAddress, newSession->Port, g_sessionList.size());
+#endif
 
 	return newSession;
 }
@@ -38,6 +43,10 @@ void DeleteDisconnectedSessions()
 	{
 		if ((*it)->bToDelete)
 		{
+#ifdef USE_SESSION_CONSOLE_LOG
+			wprintf(L"session closed %s:%d, session count = %zd\n", (*it)->IpAddress, (*it)->Port, g_sessionList.size() - 1);
+#endif
+
 			closesocket((*it)->Socket);
 			delete (*it);
 			it = g_sessionList.erase(it);
@@ -53,11 +62,18 @@ bool SendUnicast(Session* session, char* buffer, int size)
 {
 	ASSERT_WITH_MESSAGE(session != nullptr, L"SendUnicast() - session is nullptr");
 
+	if (session->bToDelete == true)
+	{
+		return false;
+	}
+
 	bool returnValue = false;
 	returnValue = session->SendBuffer.Enqueue(buffer, size);
+
 	if (returnValue == false)
 	{
-		LOG(L"SendBuffer Enqueue Fail");
+		LOGF(L"Session [%s:%d][ID = %d] SendBuffer Enqueue Fail. disconnect", session->IpAddress, session->Port, session->Id);
+		Disconnect(session);
 	}
 
 	return returnValue;
@@ -70,11 +86,6 @@ void SendBroadcast(int exceptSessionId, char* buffer, int size)
 		Session* visit = *it;
 
 		if (visit->Id == exceptSessionId)
-		{
-			continue;
-		}
-
-		if (visit->bToDelete == true)
 		{
 			continue;
 		}
