@@ -2,13 +2,29 @@
 
 #include <iostream>
 #include <wchar.h>
+#include <WinSock2.h>
 #include <WS2tcpip.h>
 
 #include "List.h"
 #include "Session.h"
-#include "WSA.h"
 #include "Logger.h"
 #include "NetworkProc.h"
+
+#pragma region WSA_STARTUP
+
+#define WSA_STARTUP()                          \
+do                                             \
+{                                              \
+	WSADATA wsa;                               \
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) \
+	{                                          \
+		return 1;                              \
+	}                                          \
+} while(false)                                 \
+
+#define WSA_CLEANUP() WSACleanup()
+
+#pragma endregion
 
 #define SERVER_PORT 5000 // server port number
 

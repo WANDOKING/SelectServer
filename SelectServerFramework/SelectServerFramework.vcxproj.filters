@@ -16,25 +16,37 @@
     <Filter Include="Session">
       <UniqueIdentifier>{50dd7b0b-eeb0-4170-8cc2-e99390387f09}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libraries\Logger">
+      <UniqueIdentifier>{c6f6d448-86be-4a05-bb90-a1c579bacda8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\DataStructure">
+      <UniqueIdentifier>{344759ff-bd70-4e63-b818-f58561884413}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Profiler">
+      <UniqueIdentifier>{f39b543e-1f89-4ad3-a09c-1b8d25ab40be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NetworkProc.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="WSA.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="Logger.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="List.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="RingBuffer.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
     <ClInclude Include="Session.h">
       <Filter>Session</Filter>
+    </ClInclude>
+    <ClInclude Include="List.h">
+      <Filter>Libraries\DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Libraries\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="RingBuffer.h">
+      <Filter>Libraries\DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Serializer.h">
+      <Filter>Libraries\DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Profiler.h">
+      <Filter>Libraries\Profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -44,11 +56,14 @@
     <ClCompile Include="NetworkProc.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
-      <Filter>Libraries</Filter>
-    </ClCompile>
     <ClCompile Include="Session.cpp">
       <Filter>Session</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Libraries\Logger</Filter>
+    </ClCompile>
+    <ClCompile Include="Profiler.cpp">
+      <Filter>Libraries\Profiler</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
