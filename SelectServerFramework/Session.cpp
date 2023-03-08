@@ -2,6 +2,7 @@
 #include "List.h"
 #include "Logger.h"
 #include "RingBuffer.h"
+#include "SessionProc.h"
 
 #define MAX_SESSION_COUNT FD_SETSIZE
 #define EXCEPT_NOTHING -1
@@ -13,7 +14,7 @@ using namespace mds;
 list<Session*> g_sessionList;
 int g_id = 0;
 
-Session* CreateSession(SOCKET sock, SOCKADDR_IN address)
+void CreateSession(SOCKET sock, SOCKADDR_IN address)
 {
 	Session* newSession = new Session(sock, address, g_id);
 	g_id = (g_id + 1) % INT_MAX;
@@ -24,7 +25,7 @@ Session* CreateSession(SOCKET sock, SOCKADDR_IN address)
 	wprintf(L"session created %s:%d, session count = %zd\n", newSession->IpAddress, newSession->Port, g_sessionList.size());
 #endif
 
-	return newSession;
+	CreateProc(newSession);
 }
 
 void Disconnect(Session* session)
@@ -35,6 +36,8 @@ void Disconnect(Session* session)
 	}
 
 	session->bToDelete = true;
+
+	CloseProc(session);
 }
 
 void DeleteDisconnectedSessions()

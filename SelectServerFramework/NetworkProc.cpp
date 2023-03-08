@@ -1,8 +1,11 @@
-#include "Session.h"
 #include "List.h"
 #include "Logger.h"
+#include "MessageProc.h"
+#include "NetworkProc.h"
 #include "RingBuffer.h"
 
+
+// 최대 세션 개수 (최대 동시 접속자 수 제한)
 #define MAX_SESSION_COUNT FD_SETSIZE
 
 using namespace mds;
@@ -10,7 +13,7 @@ using namespace mds;
 SOCKET g_listenSocket;
 extern list<Session*> g_sessionList;
 
-void AcceptProc()
+void NetworkAcceptProc()
 {
 	LINGER optval;
 	int retSetsockopt;
@@ -55,12 +58,12 @@ void AcceptProc()
 			break;
 		}
 
-		// 0. 리스트에 세션 정보 추가
-		Session* createdSession = CreateSession(acceptSocket, clientAddress);
+		// 세션 생성
+		CreateSession(acceptSocket, clientAddress);
 	}
 }
 
-void SendProc(Session* session)
+void NetworkSendProc(Session* session)
 {
 	char temp[RingBuffer::DEFAULT_SIZE];
 	int retSend;
@@ -71,45 +74,54 @@ void SendProc(Session* session)
 		return;
 	}
 
-	session->SendBuffer.Dequeue(temp, useSize);
+	if (session->SendBuffer.GetDirectDequeueSize() >= useSize)
+	{
+		retSend = send(session->Socket, session->SendBuffer.GetFrontBufferPtr(), useSize, 0);
+	}
+	else
+	{
+		session->SendBuffer.Peek(temp, useSize);
+		retSend = send(session->Socket, temp, useSize, 0);
+	}
 
-	retSend = send(session->Socket, temp, useSize, 0);
 	if (retSend == SOCKET_ERROR)
 	{
 		int errorCode = WSAGetLastError();
 
-		if (errorCode == WSAECONNRESET)
+		switch (errorCode)
 		{
+		case WSAEWOULDBLOCK:
+			retSend = 0;
+			break;
+		case WSAECONNRESET:
 			Disconnect(session);
-		}
-		else
-		{
+			return;
+			break;
+		default:
 			LOG_WITH_WSAERROR(L"send() error");
 			CRASH();
 		}
 	}
+
+	session->SendBuffer.MoveFront(retSend);
 }
 
-void RecvProc(Session* session)
+void NetworkRecvProc(Session* session)
 {
-	const int MESSAGE_SIZE = 16;
-	const int MESSAGE_HEADER_SIZE = 4;
-
 	int retRecv;
-	char messageBuffer[MESSAGE_SIZE];
-	 
+
 	int freeSize = session->RecvBuffer.GetFreeSize();
 	char temp[RingBuffer::DEFAULT_SIZE];
 
 	// 1. recv()
-	bool bToDisconnect = false;
 	retRecv = recv(session->Socket, temp, sizeof(temp), 0);
 	if (retRecv == SOCKET_ERROR)
 	{
 		int errorCode = WSAGetLastError();
 		if (errorCode == WSAECONNRESET)
 		{
-			bToDisconnect = true;
+			Disconnect(session);
+			return;
 		}
 		else
 		{
@@ -119,16 +131,12 @@ void RecvProc(Session* session)
 	}
 	else if (retRecv == 0)
 	{
-		bToDisconnect = true;
+		Disconnect(session);
+		return;
 	}
 	else if (retRecv > freeSize)
 	{
-		LOG(L"RecvBuffer 부족");
-		bToDisconnect = true;
-	}
-
-	if (bToDisconnect)
-	{
+		LOGF(L"Id:%-3d - RecvBuffer full", session->Id);
 		Disconnect(session);
 		return;
 	}
@@ -136,8 +144,29 @@ void RecvProc(Session* session)
 	// 2. message process
 	session->RecvBuffer.Enqueue(temp, retRecv);
 
-	while (session->RecvBuffer.GetUseSize() >= MESSAGE_SIZE)
+	while (session->RecvBuffer.GetUseSize() >= sizeof(P_HEADER))
 	{
-		session->RecvBuffer.Peek(messageBuffer, MESSAGE_HEADER_SIZE);
+		if (session->bToDelete == true)
+		{
+			break;
+		}
+
+		P_HEADER packetHeader;
+		session->RecvBuffer.Peek((char*)&packetHeader, sizeof(P_HEADER));
+
+		if (packetHeader.Code != P_HEADER::PACKET_CODE)
+		{
+			wprintf(L"invalid packet header received from %s:%d\n", session->IpAddress, session->Port);
+			LOGF(L"invalid packet header received from %s:%d", session->IpAddress, session->Port);
+			Disconnect(session);
+			break;
+		}
+
+		if (session->RecvBuffer.GetUseSize() < sizeof(P_HEADER) + packetHeader.Size)
+		{
+			break;
+		}
+
+		SwitchMessage(session, packetHeader.Type);
 	}
 }

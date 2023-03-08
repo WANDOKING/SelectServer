@@ -1,4 +1,5 @@
 ﻿#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "winmm.lib")
 
 #include <iostream>
 #include <wchar.h>
@@ -9,6 +10,7 @@
 #include "Session.h"
 #include "Logger.h"
 #include "NetworkProc.h"
+#include "Update.h"
 
 #pragma region WSA_STARTUP
 
@@ -33,12 +35,15 @@ using namespace mds;
 extern SOCKET g_listenSocket;
 extern list<Session*> g_sessionList; // session list
 
+bool g_bShutdown = false; // if g_bShutdown == true -> the server will turn off.
+
 int main(void)
 {
 	WSA_STARTUP();
+	timeBeginPeriod(1);
 
+#pragma region SERVER STARTUP
 	SOCKADDR_IN serverAddress;
-
 	int retIoctlsocket;
 	int retBind;
 	int retListen;
@@ -66,14 +71,21 @@ int main(void)
 	// listen()
 	retListen = listen(g_listenSocket, SOMAXCONN);
 	ASSERT_WITH_MESSAGE(retListen != SOCKET_ERROR, L"listenSocket listen() Error");
+#pragma endregion
 
 	/*********************************** loop start ***********************************/
+
 	wprintf(L"Server Start\n");
+	int networkFrameCount = 0; // Network I/O frame count
+	int updateFrameCount = 0;  // Game Update() frame count
+
+	DWORD dwOldFrameLogTick = timeGetTime();
+	DWORD dwOldTick = timeGetTime();
 
 	FD_SET readSet;
 	FD_SET writeSet;
 
-	for (;;)
+	while (!g_bShutdown)
 	{
 		// FD_ZERO()
 		FD_ZERO(&readSet);
@@ -84,13 +96,11 @@ int main(void)
 
 		for (list<Session*>::iterator it = g_sessionList.begin(); it != g_sessionList.end(); ++it)
 		{
-			Session* visit = *it;
+			FD_SET((*it)->Socket, &readSet);
 
-			FD_SET(visit->Socket, &readSet);
-
-			if (visit->SendBuffer.GetUseSize() > 0)
+			if ((*it)->SendBuffer.GetUseSize() > 0)
 			{
-				FD_SET(visit->Socket, &writeSet);
+				FD_SET((*it)->Socket, &writeSet);
 			}
 		}
 
@@ -103,30 +113,59 @@ int main(void)
 
 		if (retSelect > 0)
 		{
+			int socketToHandleCount = retSelect;
+
 			if (FD_ISSET(g_listenSocket, &readSet))
 			{
-				AcceptProc();
+				NetworkAcceptProc();
+				socketToHandleCount--;
 			}
 
 			for (list<Session*>::iterator it = g_sessionList.begin(); it != g_sessionList.end(); ++it)
 			{
-				Session* visit = *it;
-
-				if (FD_ISSET(visit->Socket, &readSet))
+				if (socketToHandleCount <= 0)
 				{
-					RecvProc(visit);
+					break;
 				}
 
-				if (FD_ISSET(visit->Socket, &writeSet))
+				if (FD_ISSET((*it)->Socket, &readSet))
 				{
-					SendProc(visit);
+					NetworkRecvProc(*it);
+					socketToHandleCount--;
+				}
+
+				if (FD_ISSET((*it)->Socket, &writeSet))
+				{
+					NetworkSendProc(*it);
+					socketToHandleCount--;
 				}
 			}
 		}
+
+		if (timeGetTime() - dwOldTick >= 20)
+		{
+			Update();
+			updateFrameCount++;
+			dwOldTick += 20;
+		}
+
+		if (timeGetTime() - dwOldFrameLogTick >= 1000)
+		{
+			wprintf(L"network FPS : %d\n", networkFrameCount);
+			wprintf(L"Update FPS : %d\n", updateFrameCount);
+			wprintf(L"sessionCount : %zd\n", g_sessionList.size());
+			networkFrameCount = 0;
+			updateFrameCount = 0;
+			dwOldFrameLogTick += 1000;
+		}
+
+		networkFrameCount++;
 
 		// DeleteDisconnectedSessions()
 		DeleteDisconnectedSessions();
 	}
 
+	LOG(L"Server Shutdown");
 	WSA_CLEANUP();
+	timeEndPeriod(1);
 }

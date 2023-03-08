@@ -127,20 +127,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="SessionProc.h" />
     <ClInclude Include="List.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="MessageProc.h" />
     <ClInclude Include="NetworkProc.h" />
     <ClInclude Include="Profiler.h" />
     <ClInclude Include="RingBuffer.h" />
     <ClInclude Include="Serializer.h" />
     <ClInclude Include="Session.h" />
+    <ClInclude Include="Update.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="SessionProc.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MessageProc.cpp" />
     <ClCompile Include="NetworkProc.cpp" />
     <ClCompile Include="Profiler.cpp" />
     <ClCompile Include="Session.cpp" />
+    <ClCompile Include="Update.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

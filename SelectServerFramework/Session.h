@@ -31,7 +31,7 @@ struct Session
 };
 
 // 세션을 만들고, 세션 리스트에 추가됨
-Session* CreateSession(SOCKET sock, SOCKADDR_IN address);
+void CreateSession(SOCKET sock, SOCKADDR_IN address);
 
 // 세션 종료. 아직 리스트에서 삭제하진 않고 세션의 상태만을 변경
 void Disconnect(Session* session);
