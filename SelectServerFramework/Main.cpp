@@ -15,8 +15,6 @@
 using namespace mds;
 
 extern SOCKET g_listenSocket;
-
-
 extern list<Session*> g_sessionList; // session list
 
 int main(void)
