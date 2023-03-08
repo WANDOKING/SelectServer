@@ -8,7 +8,7 @@
 using namespace mds;
 
 SOCKET g_listenSocket;
-extern int g_sessionCount;
+extern list<Session*> g_sessionList;
 
 void AcceptProc()
 {
@@ -46,7 +46,7 @@ void AcceptProc()
 		}
 
 		// MAX_SESSION_COUNT check
-		if (g_sessionCount >= MAX_SESSION_COUNT)
+		if (g_sessionList.size() >= MAX_SESSION_COUNT)
 		{
 			WCHAR acceptedClientIpAddress[16];
 			InetNtopW(AF_INET, &clientAddress, acceptedClientIpAddress, 16);

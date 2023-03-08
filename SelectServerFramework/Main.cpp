@@ -15,14 +15,15 @@
 using namespace mds;
 
 extern SOCKET g_listenSocket;
-SOCKADDR_IN g_serverAddress;
+
 
 extern list<Session*> g_sessionList; // session list
-extern int g_sessionCount;           // number of connected session
 
 int main(void)
 {
 	WSA_STARTUP();
+
+	SOCKADDR_IN serverAddress;
 
 	int retIoctlsocket;
 	int retBind;
@@ -39,13 +40,13 @@ int main(void)
 	ASSERT_WITH_MESSAGE(retIoctlsocket != SOCKET_ERROR, L"listenSocket ioctlsocket() Error");
 
 	// g_serverAddress initialize
-	ZeroMemory(&g_serverAddress, sizeof(g_serverAddress));
-	g_serverAddress.sin_family = AF_INET;
-	g_serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-	g_serverAddress.sin_port = htons(SERVER_PORT);
+	ZeroMemory(&serverAddress, sizeof(serverAddress));
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+	serverAddress.sin_port = htons(SERVER_PORT);
 
 	// bind()
-	retBind = bind(g_listenSocket, (SOCKADDR*)&g_serverAddress, sizeof(g_serverAddress));
+	retBind = bind(g_listenSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress));
 	ASSERT_WITH_MESSAGE(retBind != SOCKET_ERROR, L"listenSocket bind() Error");
 
 	// listen()

@@ -5,10 +5,11 @@
 
 #define MAX_SESSION_COUNT FD_SETSIZE
 
+#define EXCEPT_NOTHING -1
+
 using namespace mds;
 
 list<Session*> g_sessionList;
-int g_sessionCount = 0;
 int g_id = 0;
 
 Session* CreateSession(SOCKET sock, SOCKADDR_IN address)
@@ -17,7 +18,6 @@ Session* CreateSession(SOCKET sock, SOCKADDR_IN address)
 	g_id = (g_id + 1) % INT_MAX;
 
 	g_sessionList.push_back(newSession);
-	g_sessionCount++;
 
 	return newSession;
 }
@@ -41,7 +41,6 @@ void DeleteDisconnectedSessions()
 			closesocket((*it)->Socket);
 			delete (*it);
 			it = g_sessionList.erase(it);
-			g_sessionCount--;
 		}
 		else
 		{
